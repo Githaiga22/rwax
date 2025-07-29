@@ -5,10 +5,11 @@ const TOKENIZER_ROLE: felt252 = selector!("TOKENIZER_ROLE");
 #[starknet::contract]
 mod RWAFactory {
     // === Imports ===
-    use starknet::{ContractAddress, storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess}};
-    use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
-    use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::access::accesscontrol::AccessControlComponent;
+    use openzeppelin::introspection::src5::SRC5Component;
+    use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
+    use starknet::ContractAddress;
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
     use super::IRWAFactory;
 
     // === Component Mixins ===
@@ -50,7 +51,6 @@ mod RWAFactory {
         SRC5Event: SRC5Component::Event,
         #[flat]
         AccessControlEvent: AccessControlComponent::Event,
-
     }
 
     // === Constructor Skeleton ===
@@ -89,16 +89,19 @@ mod RWAFactory {
             new_token_id
         }
 
-        fn update_asset_metadata(ref self: ContractState, token_id: u256, new_data: felt252) {
-            // TODO: Implement metadata update
+        fn update_asset_metadata(
+            ref self: ContractState, token_id: u256, new_data: felt252,
+        ) { // TODO: Implement metadata update
         }
 
-        fn grant_tokenizer_role(ref self: ContractState, account: ContractAddress) {
-            // TODO: Implement role granting
+        fn grant_tokenizer_role(
+            ref self: ContractState, account: ContractAddress,
+        ) { // TODO: Implement role granting
         }
 
-        fn revoke_tokenizer_role(ref self: ContractState, account: ContractAddress) {
-            // TODO: Implement role revocation
+        fn revoke_tokenizer_role(
+            ref self: ContractState, account: ContractAddress,
+        ) { // TODO: Implement role revocation
         }
 
         fn get_asset_data(self: @ContractState, token_id: u256) -> felt252 {
