@@ -130,7 +130,6 @@ mod RWAFactory {
         }
 
         fn get_fractionalization_module(self: @ContractState) -> ContractAddress {
-            // Return the stored fractionalization module address
             self.fractionalization_module.read()
         }
     }
