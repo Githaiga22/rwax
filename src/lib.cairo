@@ -6,10 +6,6 @@ pub mod events {
     // pub mod factory;
 }
 
-pub mod structs {
-    pub mod asset;
-}
-
 pub mod contracts {
     pub mod rwa_factory;
 }

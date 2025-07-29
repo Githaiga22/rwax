@@ -1,5 +1,4 @@
 use rwax::interfaces::irwa_factory::IRWAFactory;
-use rwax::structs::asset::AssetData;
 
 const TOKENIZER_ROLE: felt252 = selector!("TOKENIZER_ROLE");
 
@@ -10,7 +9,7 @@ mod RWAFactory {
     use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::access::accesscontrol::{AccessControlComponent, DEFAULT_ADMIN_ROLE};
-    use super::{IRWAFactory, AssetData, TOKENIZER_ROLE};
+    use super::{IRWAFactory, TOKENIZER_ROLE};
 
     // === Component Mixins ===
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
@@ -37,7 +36,7 @@ mod RWAFactory {
         #[substorage(v0)]
         accesscontrol: AccessControlComponent::Storage,
         token_counter: u256,
-        asset_data: Map<u256, AssetData>,
+        asset_data: Map<u256, felt252>,
         fractionalization_module: ContractAddress,
     }
 
