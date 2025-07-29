@@ -1,11 +1,16 @@
 use rwax::interfaces::irwa_factory::IRWAFactory;
-use rwax::structs::asset::AssetData;
-use starknet::ContractAddress;
 
 const TOKENIZER_ROLE: felt252 = selector!("TOKENIZER_ROLE");
 
 #[starknet::contract]
 mod RWAFactory {
+    // === Imports ===
+    use starknet::{ContractAddress, storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess}};
+    use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
+    use openzeppelin::introspection::src5::SRC5Component;
+    use openzeppelin::access::accesscontrol::AccessControlComponent;
+    use super::IRWAFactory;
+
     // === Component Mixins ===
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
@@ -14,6 +19,7 @@ mod RWAFactory {
     #[abi(embed_v0)]
     impl ERC721MixinImpl = ERC721Component::ERC721MixinImpl<ContractState>;
     impl ERC721InternalImpl = ERC721Component::InternalImpl<ContractState>;
+    impl ERC721HooksImpl = ERC721HooksEmptyImpl<ContractState>;
 
     #[abi(embed_v0)]
     impl AccessControlImpl =
@@ -30,7 +36,7 @@ mod RWAFactory {
         #[substorage(v0)]
         accesscontrol: AccessControlComponent::Storage,
         token_counter: u256,
-        asset_data: Map<u256, AssetData>,
+        asset_data: Map<u256, felt252>,
         fractionalization_module: ContractAddress,
     }
 
@@ -44,10 +50,7 @@ mod RWAFactory {
         SRC5Event: SRC5Component::Event,
         #[flat]
         AccessControlEvent: AccessControlComponent::Event,
-        AssetTokenized: AssetTokenized,
-        AssetMetadataUpdated: AssetMetadataUpdated,
-        TokenizerRoleGranted: TokenizerRoleGranted,
-        TokenizerRoleRevoked: TokenizerRoleRevoked,
+
     }
 
     // === Constructor Skeleton ===
@@ -60,53 +63,62 @@ mod RWAFactory {
         admin: ContractAddress,
         fractionalization_module: ContractAddress,
     ) {
-        // TODO: Initialize components
-        unimplemented!();
+        // Initialize ERC721 component
+        self.erc721.initializer(name, symbol, base_uri);
+
+        // Initialize AccessControl component
+        self.accesscontrol.initializer();
+
+        // Initialize token counter to 0
+        self.token_counter.write(0_u256);
+
+        // Set fractionalization module address
+        self.fractionalization_module.write(fractionalization_module);
     }
 
     // === IRWAFactory Interface Implementation ===
     #[abi(embed_v0)]
     impl RWAFactoryImpl of IRWAFactory<ContractState> {
         fn tokenize_asset(
-            ref self: ContractState, owner: ContractAddress, asset_data: AssetData,
+            ref self: ContractState, owner: ContractAddress, asset_data: felt252,
         ) -> u256 {
-            // TODO
-            unimplemented!();
+            // TODO: Implement asset tokenization
+            let current_count = self.token_counter.read();
+            let new_token_id = current_count + 1;
+            self.token_counter.write(new_token_id);
+            new_token_id
         }
 
-        fn update_asset_metadata(ref self: ContractState, token_id: u256, new_data: AssetData) {
-            // TODO
-            unimplemented!();
+        fn update_asset_metadata(ref self: ContractState, token_id: u256, new_data: felt252) {
+            // TODO: Implement metadata update
         }
 
         fn grant_tokenizer_role(ref self: ContractState, account: ContractAddress) {
-            // TODO
-            unimplemented!();
+            // TODO: Implement role granting
         }
 
         fn revoke_tokenizer_role(ref self: ContractState, account: ContractAddress) {
-            // TODO
-            unimplemented!();
+            // TODO: Implement role revocation
         }
 
         fn get_asset_data(self: @ContractState, token_id: u256) -> felt252 {
-            // TODO
-            unimplemented!();
+            // TODO: Implement asset data retrieval
+            0
         }
 
         fn has_tokenizer_role(self: @ContractState, account: ContractAddress) -> bool {
-            // TODO
-            unimplemented!();
+            // TODO: Implement role checking
+            true
         }
 
         fn get_total_assets(self: @ContractState) -> u256 {
-            // TODO
-            unimplemented!();
+            // Return the total number of tokenized assets
+            self.token_counter.read()
         }
 
         fn get_fractionalization_module(self: @ContractState) -> ContractAddress {
-            // TODO
-            unimplemented!();
+            // Return the stored fractionalization module address
+            self.fractionalization_module.read()
         }
     }
 }
