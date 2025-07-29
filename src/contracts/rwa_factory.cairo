@@ -1,4 +1,5 @@
 use rwax::interfaces::irwa_factory::IRWAFactory;
+use rwax::structs::asset::AssetData;
 
 const TOKENIZER_ROLE: felt252 = selector!("TOKENIZER_ROLE");
 
@@ -10,7 +11,7 @@ mod RWAFactory {
     use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
     use starknet::ContractAddress;
     use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
-    use super::IRWAFactory;
+    use super::{AssetData, IRWAFactory};
 
     // === Component Mixins ===
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
@@ -37,7 +38,7 @@ mod RWAFactory {
         #[substorage(v0)]
         accesscontrol: AccessControlComponent::Storage,
         token_counter: u256,
-        asset_data: Map<u256, felt252>,
+        asset_data: Map<u256, AssetData>,
         fractionalization_module: ContractAddress,
     }
 
@@ -80,7 +81,7 @@ mod RWAFactory {
     #[abi(embed_v0)]
     impl RWAFactoryImpl of IRWAFactory<ContractState> {
         fn tokenize_asset(
-            ref self: ContractState, owner: ContractAddress, asset_data: felt252,
+            ref self: ContractState, owner: ContractAddress, asset_data: AssetData,
         ) -> u256 {
             // TODO: Implement asset tokenization
             let current_count = self.token_counter.read();
@@ -90,7 +91,7 @@ mod RWAFactory {
         }
 
         fn update_asset_metadata(
-            ref self: ContractState, token_id: u256, new_data: felt252,
+            ref self: ContractState, token_id: u256, new_data: AssetData,
         ) { // TODO: Implement metadata update
         }
 
@@ -104,9 +105,18 @@ mod RWAFactory {
         ) { // TODO: Implement role revocation
         }
 
-        fn get_asset_data(self: @ContractState, token_id: u256) -> felt252 {
-            // TODO: Implement asset data retrieval
-            0
+        fn get_asset_data(self: @ContractState, token_id: u256) -> AssetData {
+            // TODO: Implement asset data retrieval - return default for now
+            AssetData {
+                asset_type: 'DEFAULT',
+                name: "Default Asset",
+                description: "Default Description",
+                value_usd: 0_u256,
+                legal_doc_uri: "",
+                image_uri: "",
+                location: "",
+                created_at: 0_u64,
+            }
         }
 
         fn has_tokenizer_role(self: @ContractState, account: ContractAddress) -> bool {
