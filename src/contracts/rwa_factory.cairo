@@ -11,7 +11,7 @@ mod RWAFactory {
     use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
     use starknet::ContractAddress;
     use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
-    use super::{AssetData, IRWAFactory};
+    use super::{AssetData, IRWAFactory, TOKENIZER_ROLE};
 
     // === Component Mixins ===
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
@@ -120,8 +120,7 @@ mod RWAFactory {
         }
 
         fn has_tokenizer_role(self: @ContractState, account: ContractAddress) -> bool {
-            // TODO: Implement role checking
-            true
+            self.accesscontrol.has_role(TOKENIZER_ROLE, account)
         }
 
         fn get_total_assets(self: @ContractState) -> u256 {
