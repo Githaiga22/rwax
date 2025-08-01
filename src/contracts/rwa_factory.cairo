@@ -10,7 +10,8 @@ use rwax::events::factory::{
 use rwax::interfaces::irwa_factory::IRWAFactory;
 use rwax::structs::asset::AssetData;
 use starknet::storage::{
-    Map, StorageMapWriteAccess, StoragePointerReadAccess, StoragePointerWriteAccess,
+    Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
+    StoragePointerWriteAccess,
 };
 use starknet::{ContractAddress, get_caller_address};
 
@@ -23,7 +24,7 @@ pub mod RWAFactory {
     use super::{
         AccessControlComponent, AssetData, AssetMetadataUpdated, AssetTokenized, ByteArray,
         ContractAddress, DEFAULT_ADMIN_ROLE, ERC721Component, ERC721HooksEmptyImpl, IRWAFactory,
-        Map, SRC5Component, StorageMapWriteAccess, StoragePointerReadAccess,
+        Map, SRC5Component, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
         StoragePointerWriteAccess, TOKENIZER_ROLE, TokenizerRoleGranted, TokenizerRoleRevoked,
         get_caller_address, u256,
     };
@@ -65,6 +66,7 @@ pub mod RWAFactory {
     #[event]
     #[derive(Drop, starknet::Event)]
     pub enum Event {
+        // Corrected: Updated event syntax to use #[flat]
         #[flat]
         ERC721Event: ERC721Component::Event,
         #[flat]
