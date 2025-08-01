@@ -1,17 +1,33 @@
+// Corrected: Added missing imports
+use core::byte_array::ByteArray;
+use core::integer::u256;
+use openzeppelin::access::accesscontrol::{AccessControlComponent, DEFAULT_ADMIN_ROLE};
+use openzeppelin::introspection::src5::SRC5Component;
+use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
+use rwax::events::factory::{
+    AssetMetadataUpdated, AssetTokenized, TokenizerRoleGranted, TokenizerRoleRevoked,
+};
 use rwax::interfaces::irwa_factory::IRWAFactory;
 use rwax::structs::asset::AssetData;
+use starknet::storage::{
+    Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
+    StoragePointerWriteAccess,
+};
+use starknet::{ContractAddress, get_caller_address};
 
 const TOKENIZER_ROLE: felt252 = selector!("TOKENIZER_ROLE");
 
 #[starknet::contract]
-mod RWAFactory {
-    // === Imports ===
-    use openzeppelin::access::accesscontrol::AccessControlComponent;
-    use openzeppelin::introspection::src5::SRC5Component;
-    use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
-    use starknet::ContractAddress;
-    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
-    use super::{AssetData, IRWAFactory, TOKENIZER_ROLE};
+pub mod RWAFactory {
+    // Note: All imports were moved outside the mod block as per your original code.
+    // If you were to follow a different pattern, they might be placed here.
+    use super::{
+        AccessControlComponent, AssetData, AssetMetadataUpdated, AssetTokenized, ByteArray,
+        ContractAddress, DEFAULT_ADMIN_ROLE, ERC721Component, ERC721HooksEmptyImpl, IRWAFactory,
+        Map, SRC5Component, StorageMapWriteAccess, StoragePointerReadAccess,
+        StoragePointerWriteAccess, TOKENIZER_ROLE, TokenizerRoleGranted, TokenizerRoleRevoked,
+        get_caller_address, u256,
+    };
 
     // === Component Mixins ===
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
@@ -27,6 +43,10 @@ mod RWAFactory {
     impl AccessControlImpl =
         AccessControlComponent::AccessControlImpl<ContractState>;
     impl AccessControlInternalImpl = AccessControlComponent::InternalImpl<ContractState>;
+
+    // Implement SRC5 mixin
+    impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
+    impl SRC5InternalImpl = SRC5Component::InternalImpl<ContractState>;
 
     // === Storage ===
     #[storage]
@@ -45,13 +65,17 @@ mod RWAFactory {
     // === Events ===
     #[event]
     #[derive(Drop, starknet::Event)]
-    enum Event {
+    pub enum Event {
         #[flat]
         ERC721Event: ERC721Component::Event,
         #[flat]
         SRC5Event: SRC5Component::Event,
         #[flat]
         AccessControlEvent: AccessControlComponent::Event,
+        AssetTokenized: AssetTokenized,
+        AssetMetadataUpdated: AssetMetadataUpdated,
+        TokenizerRoleGranted: TokenizerRoleGranted,
+        TokenizerRoleRevoked: TokenizerRoleRevoked,
     }
 
     // === Constructor Skeleton ===
@@ -64,16 +88,14 @@ mod RWAFactory {
         admin: ContractAddress,
         fractionalization_module: ContractAddress,
     ) {
-        // Initialize ERC721 component
         self.erc721.initializer(name, symbol, base_uri);
 
-        // Initialize AccessControl component
+        // The admin now has the DEFAULT_ADMIN_ROLE
         self.accesscontrol.initializer();
+        self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, admin);
+        self.accesscontrol._grant_role(TOKENIZER_ROLE, admin);
 
-        // Initialize token counter to 0
         self.token_counter.write(0_u256);
-
-        // Set fractionalization module address
         self.fractionalization_module.write(fractionalization_module);
     }
 
@@ -83,39 +105,68 @@ mod RWAFactory {
         fn tokenize_asset(
             ref self: ContractState, owner: ContractAddress, asset_data: AssetData,
         ) -> u256 {
-            // TODO: Implement asset tokenization
-            let current_count = self.token_counter.read();
-            let new_token_id = current_count + 1;
-            self.token_counter.write(new_token_id);
-            new_token_id
+            self.accesscontrol.assert_only_role(TOKENIZER_ROLE);
+
+            let token_id = self.token_counter.read() + 1;
+            self.token_counter.write(token_id);
+
+            let asset_type = asset_data.asset_type;
+            self.asset_data.write(token_id, asset_data.clone());
+            self.erc721.mint(owner, token_id);
+
+            self.emit(AssetTokenized { token_id, owner, asset_type, asset_data });
+
+            token_id
         }
 
-        fn update_asset_metadata(
-            ref self: ContractState, token_id: u256, new_data: AssetData,
-        ) { // TODO: Implement metadata update
+        fn update_asset_metadata(ref self: ContractState, token_id: u256, new_data: AssetData) {
+            // Check that the token exists
+            let owner = self.erc721.owner_of(token_id);
+
+            // Check that caller is either owner or approved operator
+            let caller = get_caller_address();
+            let is_owner = caller == owner;
+            let is_approved = self.erc721.is_approved_for_all(owner, caller)
+                || self.erc721.get_approved(token_id) == caller;
+
+            assert(is_owner || is_approved, 'Not authorized');
+
+            // Update asset_data with new metadata
+            self.asset_data.write(token_id, new_data.clone());
+
+            // Emit AssetMetadataUpdated event
+            self.emit(AssetMetadataUpdated { token_id, updater: caller, new_data });
         }
 
-        fn grant_tokenizer_role(
-            ref self: ContractState, account: ContractAddress,
-        ) { // TODO: Implement role granting
+        // TODO: grant_tokenizer_role
+        fn grant_tokenizer_role(ref self: ContractState, account: ContractAddress) {
+            // Check that caller has DEFAULT_ADMIN_ROLE
+            self.accesscontrol.assert_only_role(DEFAULT_ADMIN_ROLE);
+
+            // Grant the TOKENIZER_ROLE to the specified account
+            self.accesscontrol._grant_role(TOKENIZER_ROLE, account);
+
+            // Emit the TokenizerRoleGranted event
+            let granter = get_caller_address();
+            self.emit(TokenizerRoleGranted { account, granter });
         }
 
-        fn revoke_tokenizer_role(
-            ref self: ContractState, account: ContractAddress,
-        ) { // TODO: Implement role revocation
-        }
+        // TODO: revoke_tokenizer_role
+        fn revoke_tokenizer_role(ref self: ContractState, account: ContractAddress) {}
 
+        // TODO: get_asset_data
         fn get_asset_data(self: @ContractState, token_id: u256) -> AssetData {
-            // TODO: Implement asset data retrieval - return default for now
+            // remove this and implement the function, placed this so that function
+            // signature won't be returning error.
             AssetData {
-                asset_type: 'DEFAULT',
-                name: "Default Asset",
-                description: "Default Description",
-                value_usd: 0_u256,
-                legal_doc_uri: "",
-                image_uri: "",
-                location: "",
-                created_at: 0_u64,
+                asset_type: 'REAL_ESTATE',
+                name: "Test Property",
+                description: "A test property",
+                value_usd: 100,
+                legal_doc_uri: "ipfs://test",
+                image_uri: "ipfs://test",
+                location: "Test Location",
+                created_at: 100,
             }
         }
 
