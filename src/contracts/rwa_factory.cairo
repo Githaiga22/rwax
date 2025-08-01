@@ -175,6 +175,7 @@ pub mod RWAFactory {
             self.accesscontrol.has_role(TOKENIZER_ROLE, account)
         }
 
+        // TODO: get_total_assets
         fn get_total_assets(self: @ContractState) -> u256 {
             // Return the total number of tokenized assets
             self.token_counter.read()
