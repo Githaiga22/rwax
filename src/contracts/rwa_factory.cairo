@@ -10,8 +10,7 @@ use rwax::events::factory::{
 use rwax::interfaces::irwa_factory::IRWAFactory;
 use rwax::structs::asset::AssetData;
 use starknet::storage::{
-    Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
-    StoragePointerWriteAccess,
+    Map, StorageMapWriteAccess, StoragePointerReadAccess, StoragePointerWriteAccess,
 };
 use starknet::{ContractAddress, get_caller_address};
 
